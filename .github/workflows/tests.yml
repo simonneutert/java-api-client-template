@@ -1,0 +1,31 @@
+name: Tests
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java-version: ["17", "21", "25"]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: "temurin"
+          cache: maven
+
+      - name: lint spotless
+        if: matrix.java-version == '25'
+        run: mvn spotless:check
+      - name: Run tests
+        run: mvn --batch-mode test
