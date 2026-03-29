@@ -59,7 +59,18 @@ The WireMock record/playback pattern (see `RecordPlaybackTest`) lets you capture
 
 ## Filtering sensitive data
 
-`FieldMaskingFilter` replaces the value of any named JSON field with `***REDACTED***` (or a custom string). The replacement happens on the parsed `JsonNode` tree — before deserialization into a Java record — so sensitive data never appears in the object graph, logs, or heap dumps.
+### Where filtering happens — two complementary layers
+
+| Layer | Runs inside | Purpose | Mechanism |
+|-------|------------|---------|-----------|
+| **Client-side** (`ResponseFilter`) | `ApiClient.execute()` | Sanitize data *before* it enters the Java object graph | Transforms the parsed `JsonNode` tree before `treeToValue()` |
+| **WireMock-side** (`StubRequestFilterV2`) | WireMock server | Sanitize what gets *recorded to disk* during record/playback | Intercepts requests/responses inside WireMock ([docs](https://wiremock.org/docs/extensibility/filtering-requests/)) |
+
+This project implements the **client-side** approach. It protects the application layer regardless of where the HTTP response comes from (live API, WireMock playback, or any other test double). WireMock-side filtering is a complementary measure you can add if you also need to scrub the mapping files themselves.
+
+### `FieldMaskingFilter` — the built-in implementation
+
+`FieldMaskingFilter` replaces the value of any named JSON field with `***REDACTED***` (or a custom string). The replacement happens on a deep copy of the parsed `JsonNode` tree — before deserialization into a Java record — so sensitive data never appears in the object graph, logs, or heap dumps.
 
 ```java
 import de.simonneutert.ApiClient;
@@ -78,14 +89,42 @@ UserProfile profile = client.get("/api/v1/me", UserProfile.class);
 // profile.phone() → "***REDACTED***"
 ```
 
-Multiple filters chain in order:
+Multiple filters chain in registration order via `.addFilter()`:
 
 ```java
-// will replace values with "███████" instead of "***REDACTED***"
 ApiClient client = new ApiClient.Builder()
     .baseUrl("https://api.example.com")
     .addFilter(new FieldMaskingFilter(Set.of("ssn", "credit_card"), "███████"))
     .addFilter(new FieldMaskingFilter(Set.of("date_of_birth")))
+    .build();
+```
+
+### Lambda filters and `andThen()` composition
+
+`ResponseFilter` is a `@FunctionalInterface` — use a lambda for ad-hoc transformations:
+
+```java
+// Log every response tree before deserialization
+ResponseFilter logger = node -> { System.out.println(node); return node; };
+
+ApiClient client = new ApiClient.Builder()
+    .baseUrl("https://api.example.com")
+    .addFilter(logger)
+    .build();
+```
+
+Compose filters with `andThen()` when you want a single reusable unit:
+
+```java
+ResponseFilter piiFilter = new FieldMaskingFilter(Set.of("email", "phone"));
+ResponseFilter secretsFilter = new FieldMaskingFilter(Set.of("api_key"), "█████");
+
+// Combine into one filter — piiFilter runs first, then secretsFilter
+ResponseFilter combined = piiFilter.andThen(secretsFilter);
+
+ApiClient client = new ApiClient.Builder()
+    .baseUrl("https://api.example.com")
+    .addFilter(combined)
     .build();
 ```
 

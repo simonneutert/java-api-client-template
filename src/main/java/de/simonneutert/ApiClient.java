@@ -217,8 +217,11 @@ public class ApiClient implements AutoCloseable {
                         response.code(), "Empty response body from: " + request.url());
             }
             JsonNode node = mapper.readTree(body.string());
-            for (ResponseFilter filter : filters) {
-                node = filter.apply(node);
+            if (!filters.isEmpty()) {
+                node = node.deepCopy();
+                for (ResponseFilter filter : filters) {
+                    node = filter.apply(node);
+                }
             }
             return mapper.treeToValue(node, responseType);
         } catch (JacksonException e) {
