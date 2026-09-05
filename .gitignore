@@ -1,5 +1,9 @@
+# Local secrets and Maven credentials
+.env
+.env.*
+!.env.example
+settings.xml
 /target/
-!.mvn/wrapper/maven-wrapper.jar
 
 ### STS ###
 .apt_generated
@@ -133,8 +137,6 @@ release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
-.mvn/wrapper/maven-wrapper.jar
-
 ### Windows ###
 # Windows thumbnail cache files
 Thumbs.db
@@ -199,3 +201,6 @@ README.html
 *.iml
 .idea
 .exercism
+
+# Keep the Maven Wrapper self-contained for fresh clones.
+!.mvn/wrapper/maven-wrapper.jar

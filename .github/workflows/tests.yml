@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: ["main"]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -24,8 +27,10 @@ jobs:
           distribution: "temurin"
           cache: maven
 
-      - name: lint spotless
-        if: matrix.java-version == '25'
-        run: mvn spotless:check
       - name: Run tests
-        run: mvn --batch-mode test
+        if: matrix.java-version != '25'
+        run: ./mvnw --batch-mode test
+
+      - name: Verify
+        if: matrix.java-version == '25'
+        run: ./mvnw --batch-mode verify

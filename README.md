@@ -1,30 +1,59 @@
-# Modern Java17+ Wiremock Example for Swapi.dev
+# Java API Client Template
 
-This project demonstrates how to use WireMock with Java 17 to mock the Star Wars API (SWAPI) for testing purposes. It includes examples of setting up WireMock, creating stubs for API endpoints, and running tests against the mocked API.
+This repository is a starting point for Java HTTP API clients. It combines an OkHttp-based client, Jackson JSON mapping, response filtering, and offline integration tests backed by recorded SWAPI fixtures.
 
 ## What is included?
 
-Just the latest and greatest Java libraries for API client development and testing:
+The template includes:
 
 - Java 17+ codebase
 - OkHttp 5 client for making HTTP requests
 - Jackson v3 for JSON processing
 - JUnit 6 for testing
 - WireMock 3 for API mocking
-- Logback v1.5 for logging
+- Logback 1.6 for test logging
 
 ## Development
 
-You need Java 21+ to build and run this project. Use Maven for dependency management and build tasks.
+The generated library targets Java 17 and can be used on Java 17 or newer. The standard development environment uses JDK 25, as configured in `mise.toml`. CI also runs the test suite on JDK 17 and 21 to protect runtime compatibility.
+
+### For the mise nerds
+
+`mise.toml` pins the development JDK and provides shortcuts for the usual Maven commands. Install the configured tools, inspect the available tasks, and run one without activating mise in your shell:
 
 ```bash
-# Build the project
-mvn clean install
-# Format code with Spotless
-mvn spotless:apply
-# Run tests
-mvn test
+mise install
+mise tasks ls
+mise run test
+mise run verify
+mise run format
+mise run clean
 ```
+
+The tasks use the included Maven Wrapper so every environment uses the same Maven version. You can also invoke it directly:
+
+```bash
+# Run the complete development build
+./mvnw verify
+
+# Run tests only
+./mvnw test
+
+# Format code with Spotless
+./mvnw spotless:apply
+```
+
+`verify` compiles with `--release 17`, runs the tests, checks formatting, and builds the source and Javadoc artifacts.
+
+### Forking checklist
+
+Before using this template for a new client:
+
+- Replace the Maven `groupId`, `artifactId`, project name, and description in `pom.xml`.
+- Rename the `de.simonneutert` Java packages to your own namespace.
+- Replace the project URL and all SCM URLs in `pom.xml`.
+- Replace the SWAPI models, fixtures, and example tests with those for your target API.
+- Review whether the public OkHttp `Interceptor` and Jackson `JsonNode` extension points are intentional parts of your API.
 
 ## Rationale
 
@@ -130,40 +159,22 @@ ApiClient client = new ApiClient.Builder()
 
 ---
 
-## Recording WireMock cassettes against a protected service
+## WireMock fixtures
 
-Many production APIs require an OAuth2 bearer token. The record/playback pattern still works — you supply the real token only during the one-time recording run; the saved mapping files contain no credentials, and all subsequent test runs are fully offline.
+The repository includes WireMock mappings under `src/test/resources`. Tests replay these fixtures locally and do not contact SWAPI.
 
-The pattern is demonstrated in [`RecordPlaybackTest`](src/test/java/de/simonneutert/RecordPlaybackTest.java), with shared helpers in [`SwapiTest`](src/test/java/de/simonneutert/SwapiTest.java). The key ideas:
+The playback pattern is demonstrated in [`RecordPlaybackTest`](src/test/java/de/simonneutert/RecordPlaybackTest.java), with shared helpers in [`SwapiTest`](src/test/java/de/simonneutert/SwapiTest.java). The test checks that a mapping exists before making a request, which prevents a missing fixture from causing an accidental live network call.
 
-- Check whether mappings already exist; if not, call `wm.startRecording(target)` before the request and `wm.stopRecording()` after.
-- Pass credentials (e.g. `Authorization: Bearer …`) as request headers at call time — read them from an environment variable, never hard-code them.
-- **Do not** call `.captureHeader("Authorization")` on the `recordSpec`: that would write the token value into the saved mapping file on disk. Omitting it means WireMock forwards the header to the real service during recording but never persists it.
-- As an optional safety net, assert before committing that no credentials were captured:
+To refresh fixtures, deliberately enable WireMock recording in a local test, record against the target service once, inspect the generated mappings, and restore playback-only behavior before committing. When the target uses credentials, load them from environment variables and make sure neither request headers nor sensitive response fields are captured in fixture files.
+
+As a safety check before committing recorded mappings:
 
 ```bash
 grep -r '"Authorization"' src/test/resources/*/mappings && echo "WARNING: credentials found!" || echo "OK: no credentials in mappings"
 ```
 
-Run the recording once with the real token, then all subsequent CI runs use the saved mappings with no network access needed:
+Run the playback test with:
 
 ```bash
-MY_API_TOKEN=eyJhbGci... mvn test -Dtest=RecordPlaybackTest
+./mvnw test -Dtest=RecordPlaybackTest
 ```
-
-**4. All subsequent runs are fully offline**
-
-Once `src/test/resources/hr/mappings/` contains the saved mappings, the `hasMappings` guard prevents any recording or real HTTP call. The `FieldMaskingFilter` still runs on the stored response body, so masked fields are never deserialized with their real values.
-
-```bash
-mvn test   # no token required, no network access
-```
-
-### Security checklist
-
-| Concern                                     | Mitigation                                                                                                                                    |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Token in environment only                   | `System.getenv("HR_API_TOKEN")` — never hard-coded or logged                                                                                  |
-| Token not written to disk                   | `captureHeader("Authorization")` is **not** called — WireMock forwards the header to the real API but never persists it into the mapping file |
-| Sensitive field values not in object graph  | `FieldMaskingFilter` applied before `treeToValue`                                                                                             |
-| Sensitive field values not in mapping files | Strip from recorded response bodies before committing                                                                                         |

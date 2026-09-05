@@ -1,2 +1,22 @@
 [tools]
 java = "temurin-25.0.2+10.0.LTS"
+
+[tasks.test]
+description = "Run the test suite"
+run = "./mvnw --batch-mode test"
+run_windows = "mvnw.cmd --batch-mode test"
+
+[tasks.verify]
+description = "Run the complete verification build"
+run = "./mvnw --batch-mode verify"
+run_windows = "mvnw.cmd --batch-mode verify"
+
+[tasks.format]
+description = "Apply Spotless formatting"
+run = "./mvnw --batch-mode spotless:apply"
+run_windows = "mvnw.cmd --batch-mode spotless:apply"
+
+[tasks.clean]
+description = "Remove Maven build outputs"
+run = "./mvnw --batch-mode clean"
+run_windows = "mvnw.cmd --batch-mode clean"
