@@ -2,6 +2,9 @@
 
 This repository is a starting point for Java HTTP API clients. It combines an OkHttp-based client, Jackson JSON mapping, response filtering, and offline integration tests backed by recorded SWAPI fixtures.
 
+> [!NOTE]
+> This project was created with [Codex](https://github.com/openai/codex) and GPT-5.6 Sol.
+
 ## What is included?
 
 The template includes:
