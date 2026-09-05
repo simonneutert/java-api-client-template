@@ -3,12 +3,12 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>de.simon-neutert</groupId>
-  <artifactId>swapi-client</artifactId>
+  <artifactId>java-api-client-template</artifactId>
   <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
-  <name>swapi-client</name>
+  <name>java-api-client-template</name>
   <description>A template for building extensible Java HTTP API clients with OkHttp and Jackson.</description>
-  <url>https://github.com/simonneutert/swapi-client</url>
+  <url>https://github.com/simonneutert/java-api-client-template</url>
 
   <licenses>
     <license>
@@ -26,9 +26,9 @@
   </developers>
 
   <scm>
-    <connection>scm:git:git://github.com/simonneutert/swapi-client.git</connection>
-    <developerConnection>scm:git:ssh://github.com/simonneutert/swapi-client.git</developerConnection>
-    <url>https://github.com/simonneutert/swapi-client/tree/main</url>
+    <connection>scm:git:https://github.com/simonneutert/java-api-client-template.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/simonneutert/java-api-client-template.git</developerConnection>
+    <url>https://github.com/simonneutert/java-api-client-template/tree/main</url>
   </scm>
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
